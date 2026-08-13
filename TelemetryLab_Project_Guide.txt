@@ -1,0 +1,695 @@
+TelemetryLab Project Guide
+==========================
+
+Purpose
+-------
+Replace the generic Bookstore project on your resume with something more distinctive that demonstrates practical software engineering beyond CRUD web development.
+
+Your current project mix already covers:
+- JPScribe: Python, audio processing, ML tooling, performance optimization
+- Campaign Manager: full-stack development, React, REST APIs, database design
+- Re-up: Java/Spring backend work, databases, larger datasets
+- Bookstore: another Java/Spring/React/database CRUD app
+
+The Bookstore project is therefore the most redundant. A better fourth project should show a different engineering dimension: networking, automation, testing, reliability, protocols, performance, and integration.
+
+Recommended Project
+-------------------
+TelemetryLab: a telemetry simulation and automated testing platform.
+
+Core idea:
+Simulate a drone, aircraft, satellite, or industrial system that sends sensor telemetry over a network. Build software that receives, validates, records, monitors, and tests that telemetry.
+
+Basic architecture:
+
+    Sensor / UAV Simulator
+            |
+            | UDP or TCP
+            v
+    Telemetry Receiver
+            |
+      Validation / Processing
+            |
+         Database
+            |
+          REST API
+            |
+     Optional Dashboard
+
+Plus:
+
+    Automated Test Harness
+            |
+      Fault Injection
+            |
+      Test Reports / Metrics
+
+Example telemetry fields:
+- GPS: latitude, longitude, altitude, velocity
+- Engine: RPM, temperature, fuel pressure
+- IMU: pitch, roll, yaw, acceleration
+- System: battery voltage, CPU temperature, system status
+
+Example message:
+
+    {
+        "device_id": "UAV-001",
+        "sequence": 1,
+        "timestamp": 1786471200,
+        "latitude": 33.812,
+        "longitude": -118.241,
+        "altitude": 1450.2,
+        "speed": 72.4,
+        "engine_temp": 81.3
+    }
+
+Why This Project Is Strong
+--------------------------
+It gives you experience and interview stories involving:
+- Socket programming
+- UDP/TCP networking
+- Serialization and deserialization
+- Packet ordering
+- Packet loss
+- Malformed packets
+- Sequence numbers
+- Timestamps
+- Checksums
+- Concurrent clients
+- Validation
+- Logging
+- Error handling
+- Automated testing
+- Fault injection
+- Performance benchmarking
+- Docker / CI
+- Cross-language protocol design if you later add C
+
+This is much more distinctive than another CRUD web application.
+
+The most important differentiator is fault injection.
+
+Example simulator command later in development:
+
+    python simulator.py \
+        --packet-loss 0.05 \
+        --latency 100 \
+        --corruption 0.01 \
+        --duplicate-rate 0.02
+
+Faults to support:
+1. Packet loss
+2. Artificial latency
+3. Duplicate packets
+4. Corrupted packets
+5. Out-of-order packets
+6. Device disconnects
+7. Traffic bursts
+
+Your receiver should detect and handle these rather than crash.
+
+Example output:
+
+    Packets transmitted: 100000
+    Packets received:     94987
+    Packets corrupted:     1004
+    Packets rejected:      1004
+
+    Average latency:      18.4 ms
+    P95 latency:          41.2 ms
+    P99 latency:          68.7 ms
+
+    Tests:
+    Packet validation       PASS
+    Sequence detection      PASS
+    Corruption detection    PASS
+    Reconnect behavior      PASS
+
+Resume Value
+------------
+A mature version could eventually support bullets similar to:
+
+TelemetryLab | Python, C, UDP/TCP, Docker, React
+
+- Developed a distributed telemetry simulation and testing platform that generates and processes real-time sensor data over UDP/TCP
+- Implemented configurable fault injection for packet loss, latency, corruption, duplication, and out-of-order messages
+- Built automated validation and performance tests to detect malformed packets, sequence gaps, and communication failures
+- Containerized services with Docker and benchmarked telemetry processing at X messages per second
+
+Only claim metrics you actually measure.
+
+Suggested Technology Stack
+--------------------------
+Start:
+- Python
+- UDP sockets
+- JSON
+- pytest
+
+Add later:
+- Flask or FastAPI
+- SQLite or PostgreSQL
+- Docker
+- GitHub Actions
+- React
+- C
+- WebSockets
+- Redis, only if genuinely useful
+
+Do not start with React, Docker, PostgreSQL, authentication, AWS, or microservices. Those can easily make the project much longer without increasing its resume value proportionally.
+
+Timeline
+--------
+If working seriously or close to full-time:
+
+3-5 days:
+- Interesting prototype
+- Basic networking
+- Some packet validation / sequence tracking
+
+10-14 days:
+- Resume-worthy version
+- Networking
+- Fault injection
+- Automated tests
+- Basic benchmarks
+- Good README
+
+About 3 weeks:
+- Polished portfolio project
+- CI / Docker
+- Dashboard
+- C sender or client
+- Better benchmarking and documentation
+
+4+ weeks:
+- Usually diminishing returns unless adding a genuinely substantial feature
+
+Suggested breakdown:
+
+Stage                                      Time
+------------------------------------------------
+Basic simulator + receiver                 1-2 days
+Custom message protocol                    1-2 days
+Validation + logging                       1-2 days
+Fault injection                            2-3 days
+Automated test suite                       2-3 days
+Database + API                             1-2 days
+Docker + GitHub Actions                    1-2 days
+Dashboard                                  2-4 days
+Benchmarking + README                      1-2 days
+
+Week 1: Core Networking
+-----------------------
+Goal:
+Python simulator -> UDP -> Python receiver
+
+Start with:
+
+    telemetry-lab/
+    ├── simulator.py
+    ├── receiver.py
+    └── README.md
+
+Do not start with the whole telemetry system.
+
+First assignment:
+Make two Python processes communicate over UDP.
+
+Terminal 1:
+
+    python receiver.py
+    Waiting for packets...
+    Received: hello
+
+Terminal 2:
+
+    python simulator.py
+    Sent: hello
+
+Once this works, replace "hello" with a telemetry dictionary serialized as JSON.
+
+Milestone 1
+-----------
+The simulator should generate telemetry and send it every 100 ms or so.
+
+Simulator flow:
+
+    generate telemetry
+          |
+    serialize telemetry
+          |
+      send UDP packet
+
+Receiver flow:
+
+    receive UDP packet
+          |
+       deserialize
+          |
+        validate
+          |
+       print / log
+
+Example:
+
+Sender:
+
+    Sending UAV-001 seq=124
+    Sending UAV-001 seq=125
+    Sending UAV-001 seq=126
+
+Receiver:
+
+    UAV-001 | seq=124 | altitude=1450.2
+    UAV-001 | seq=125 | altitude=1451.7
+    UAV-001 | seq=126 | altitude=1453.1
+
+Milestone 2: Message Protocol
+-----------------------------
+After basic communication works, define a proper message structure.
+
+Initial JSON protocol:
+
+    {
+        "version": 1,
+        "device_id": "UAV-001",
+        "sequence": 527,
+        "timestamp": 1786471200,
+        "type": "TELEMETRY",
+        "payload": {
+            "altitude": 1450,
+            "speed": 72
+        }
+    }
+
+Validate:
+- Missing device ID
+- Unsupported version
+- Invalid sequence number
+- Impossible sensor values
+- Malformed JSON
+- Unknown message type
+
+The receiver should reject invalid messages gracefully and log the reason.
+
+Milestone 3: Sequence Tracking
+------------------------------
+Use sequence numbers to detect missing packets.
+
+Example received sequence:
+
+    1001
+    1002
+    1003
+    1005
+    1006
+
+Receiver should detect:
+
+    WARNING: Missing packet 1004 from UAV-001
+
+Track statistics such as:
+
+    Packets received: 10251
+    Packets missing:     48
+    Packet loss:       0.47%
+
+Milestone 4: Fault Injection
+----------------------------
+This should be one of the highest-priority features.
+
+Start with packet loss.
+
+Later add:
+- Artificial latency
+- Duplicate packets
+- Corruption
+- Out-of-order delivery
+
+Example future CLI:
+
+    python simulator.py --packet-loss 0.05
+
+Then:
+
+    python simulator.py \
+        --packet-loss 0.05 \
+        --corruption 0.01 \
+        --duplicate-rate 0.02 \
+        --latency 100
+
+Milestone 5: Automated Testing
+------------------------------
+Turn the simulator into a testing platform.
+
+Useful tests:
+
+    test_normal_traffic
+    test_packet_loss_detection
+    test_duplicate_detection
+    test_corrupt_packet_rejection
+    test_out_of_order_packets
+    test_multiple_devices
+    test_receiver_restart
+
+A good integration test:
+- Generate 10,000 packets
+- Corrupt 500
+- Verify 9,500 accepted and 500 rejected
+
+Example:
+
+    sent:       10000
+    corrupted:    500
+    accepted:    9500
+    rejected:     500
+
+    PASS
+
+Milestone 6: Multiple Devices
+-----------------------------
+Simulate many independent devices:
+
+    UAV-001
+    UAV-002
+    UAV-003
+    ...
+    UAV-050
+
+Track per-device statistics:
+
+    DEVICE    RECEIVED    LOST    INVALID    LATENCY
+    UAV-001     14261      42        3        18ms
+    UAV-002     14239      61        1        22ms
+    UAV-003     14278      20        7        16ms
+
+Then benchmark:
+- 10 devices
+- 100 devices
+- 1,000 devices
+
+Measure:
+- Messages per second
+- CPU utilization
+- Memory utilization
+- p50 latency
+- p95 latency
+- p99 latency
+
+Milestone 7: Database / API / Dashboard
+---------------------------------------
+Only after the networking and testing components are solid.
+
+Possible final architecture:
+
+        UAV Simulator 1
+             |
+        UAV Simulator 2
+             |
+        UAV Simulator N
+             |
+             | UDP
+             v
+       +---------------+
+       |   Receiver    |
+       +-------+-------+
+               |
+      validation / metrics
+               |
+       +-------+--------+
+       |                |
+       v                v
+   PostgreSQL        Metrics
+       |                |
+       +-------+--------+
+               v
+            REST API
+               |
+               v
+        React Dashboard
+
+Dashboard examples:
+- Connected devices
+- Packets per second
+- Packet loss
+- Invalid packets
+- Average latency
+- Per-device altitude / speed / temperature / status
+
+The dashboard should support the project, not become the project.
+
+Milestone 8: Add C
+------------------
+Do this after the Python version works.
+
+First:
+
+    Python sender -> Python receiver
+
+Then:
+
+    C sender -> Python receiver
+
+This forces two languages to agree on a network protocol.
+
+Eventually define a binary packet format:
+
+    [version][device][sequence][timestamp][payload][checksum]
+
+Possible C structure:
+
+    struct TelemetryPacket {
+        uint8_t version;
+        uint32_t device_id;
+        uint32_t sequence;
+        uint64_t timestamp;
+        float latitude;
+        float longitude;
+        float altitude;
+        float velocity;
+        uint32_t checksum;
+    };
+
+This introduces:
+- Byte ordering
+- Serialization
+- Struct packing
+- Binary representation
+- Checksums
+- Network byte order
+- Data type sizes
+
+Starting Documentation
+----------------------
+For the first version, keep the documentation list small.
+
+You only need:
+1. Python socket documentation
+2. Python json documentation
+3. Python time documentation
+4. Python random documentation
+5. argparse later
+
+Official Python socket documentation:
+https://docs.python.org/3/library/socket.html
+
+Focus on:
+- socket.socket()
+- socket.AF_INET
+- socket.SOCK_DGRAM
+- bind()
+- sendto()
+- recvfrom()
+- close()
+
+You do not need to understand the entire module.
+
+Official Python json documentation:
+https://docs.python.org/3/library/json.html
+
+Focus on:
+- json.dumps()
+- json.loads()
+
+Important concept:
+Sockets send bytes, while JSON serialization initially produces text.
+
+You therefore need to understand:
+
+    text.encode("utf-8")
+
+and:
+
+    bytes.decode("utf-8")
+
+Python time documentation:
+https://docs.python.org/3/library/time.html
+
+Initially focus on:
+- time.time()
+- time.sleep()
+
+Python random documentation:
+https://docs.python.org/3/library/random.html
+
+Use it to make sensor values change slightly:
+
+    altitude += random.uniform(-2, 2)
+    temperature += random.uniform(-0.5, 0.5)
+
+Do not spend time making the aircraft physics realistic. The software system is the important part.
+
+Python argparse documentation:
+https://docs.python.org/3/library/argparse.html
+
+Use this only after the basic sender works.
+
+Eventually:
+
+    python simulator.py --rate 10
+    python simulator.py --packet-loss 0.05
+
+Later Documentation
+-------------------
+Python logging:
+https://docs.python.org/3/library/logging.html
+
+Use this after the first version instead of relying only on print statements.
+
+Python struct:
+https://docs.python.org/3/library/struct.html
+
+Use this later when moving from JSON to a binary protocol and especially when adding a C sender.
+
+Concepts to Understand First
+----------------------------
+Before writing much code, know the basic meaning of:
+- UDP
+- IP address
+- Port
+- Socket
+- Sender / client
+- Receiver / server
+- Datagram
+- Bytes vs. string
+- Serialization
+- Sequence number
+
+For the initial version:
+
+    127.0.0.1 = your own computer
+    5000      = an arbitrary local port
+
+Architecture:
+
+    UDP sender
+        |
+        | JSON telemetry
+        v
+    127.0.0.1:5000
+        |
+        v
+    UDP receiver
+
+The calls you are ultimately trying to understand are approximately:
+
+Sender:
+- socket.socket(...)
+- json.dumps(...)
+- .encode(...)
+- socket.sendto(...)
+
+Receiver:
+- socket.socket(...)
+- socket.bind(...)
+- socket.recvfrom(...)
+- .decode(...)
+- json.loads(...)
+
+Immediate Assignment
+--------------------
+Do not begin by "building TelemetryLab."
+
+Your first exercise is:
+
+"Make two Python processes communicate over UDP."
+
+Steps:
+1. Create the repository
+2. Write receiver.py
+3. Write simulator.py
+4. Send the string "hello" over UDP
+5. Replace "hello" with a JSON telemetry object
+6. Add a sequence number
+7. Detect a missing sequence number
+
+Do this using the Python socket and json documentation rather than having AI generate the whole implementation.
+
+A good goal for the first coding session:
+
+"By the end of the session, simulator.py can send simulated telemetry to receiver.py over UDP, and receiver.py can detect missing sequence numbers."
+
+What Not to Do Yet
+------------------
+Avoid these during the initial phase:
+
+- React
+- Flask / FastAPI
+- PostgreSQL
+- Docker
+- AWS
+- Authentication
+- Microservices
+- Fancy UI
+- Binary protocol
+- C implementation
+
+All of those can be added later. The first goal is learning networking and making the core system work.
+
+Recommended Build Order
+-----------------------
+1. Hello over UDP
+2. JSON telemetry over UDP
+3. Sequence numbers
+4. Validation
+5. Logging
+6. Packet-loss injection
+7. Duplicate / corruption / latency injection
+8. Automated tests
+9. Multiple simulated devices
+10. Performance benchmarks
+11. Database / REST API
+12. Docker / CI
+13. Optional dashboard
+14. C sender
+15. Binary protocol
+
+When to Put It on the Resume
+----------------------------
+You do not need to wait until the project is completely finished.
+
+A reasonable point is once you have:
+- Working sender and receiver
+- Sequence tracking
+- Fault injection
+- Automated tests
+- Some benchmark or measurable result
+- A decent README
+
+That should be achievable in roughly 10-14 focused days.
+
+Overall Goal
+------------
+The goal is not simply to create another impressive-looking GitHub repository.
+
+The project should force you to practice building an unfamiliar practical system from scratch and give you concrete engineering stories for interviews involving:
+- Design decisions
+- Debugging
+- Failure handling
+- Network communication
+- Testing
+- Performance
+- Reliability
+
+That is the main reason this project is more valuable than another generic full-stack CRUD application.
