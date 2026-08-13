@@ -3,12 +3,11 @@
 # mac and linux compatability only
 # may not work on very lightweight linux installs
 # (arch etc)
-
+# ALSO DOES NOT WORK ON WSL
 
 ### TO DO / POTENTIAL CHANGELONG
 
 # currently opens in terminal but could potentially be moved to launching into iTerm instead
-# potentially add ability to kill processes from script window 
 
 
 import os
