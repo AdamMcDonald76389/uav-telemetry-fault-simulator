@@ -1,5 +1,5 @@
 # simulator for uav. currently only sends data to receiver via simple message
-
+import telemetryData
 import socket
 import json
 def main():
@@ -8,13 +8,15 @@ def main():
 
     data = {
         "deviceName": "UAV-001",
+        "sequence": 1,
         "altitude": 5000,
         "speed": 240.1
 
     }
 
-
-
+    packet = telemetryData.telemetryData(**data)
+    print(packet)
+    
     print("Sending message to receiver")
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM) # Internet, UDP
     encodeAndSend(data, sock, (UDP_IP, UDP_PORT))
