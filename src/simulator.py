@@ -2,28 +2,36 @@
 
 import socket
 import json
+def main():
+    UDP_IP = "127.0.0.1"
+    UDP_PORT = 5005
 
-UDP_IP = "127.0.0.1"
-UDP_PORT = 5005
+    data = {
+        "deviceName": "UAV-001",
+        "altitude": 5000,
+        "speed": 240.1
 
-data = {
-    "deviceName": "UAV-001",
-    "altitude": 5000,
-    "speed": 240.1
-
-
-
-
-
-}
-
-MESSAGE = b"Received!"
+    }
 
 
 
+    print("Sending message to receiver")
+    sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM) # Internet, UDP
+    encodeAndSend(data, sock, (UDP_IP, UDP_PORT))
+
+#function to encode and send data to receiver using JSON
+def encodeAndSend(message : dict, sock: socket.socket, targetAdress: tuple):
+    
+    # message serialized and then encoded 
+    data = json.dumps(message)
+    dataBytes = data.encode("utf-8")
+
+    # send to receiver
+    sock.sendto(dataBytes, targetAdress)
+    
 
 
-print("Sending message to receiver")
-sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM) # Internet, UDP
-sock.sendto(MESSAGE, (UDP_IP, UDP_PORT))
 
+
+if __name__ == "__main__":
+    main()
