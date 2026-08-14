@@ -13,4 +13,5 @@ print("Server started and waiting for data...")
 
 while True:
     data, addr = sock.recvfrom(1024) # buffer size max for testing
+    data = json.loads(data)
     print(f"received message from client {data}")
