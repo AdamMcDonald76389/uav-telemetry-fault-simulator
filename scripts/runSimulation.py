@@ -9,7 +9,6 @@
 
 # currently opens in terminal but could potentially be moved to launching into iTerm instead
 
-
 import os
 import platform
 import subprocess

@@ -19,17 +19,17 @@ def main():
     
     print("Sending message to receiver")
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM) # Internet, UDP
-    encodeAndSend(data, sock, (UDP_IP, UDP_PORT))
+    encodeAndSend(packet, sock, (UDP_IP, UDP_PORT))
 
 #function to encode and send data to receiver using JSON
-def encodeAndSend(message : dict, sock: socket.socket, targetAdress: tuple):
+def encodeAndSend(packet : telemetryData, sock: socket.socket, targetAddress: tuple):
     
     # message serialized and then encoded 
-    data = json.dumps(message)
+    data = packet.model_dump_json()
     dataBytes = data.encode("utf-8")
 
     # send to receiver
-    sock.sendto(dataBytes, targetAdress)
+    sock.sendto(dataBytes, targetAddress)
     
 
 

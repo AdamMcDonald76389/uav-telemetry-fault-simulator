@@ -2,6 +2,8 @@
 # simulator
 import json
 import socket
+import telemetryData
+from pydantic import ValidationError
 
 def main():
     UDP_IP = "127.0.0.1"
@@ -12,13 +14,24 @@ def main():
     sock.bind((UDP_IP, UDP_PORT))
     print("Server started and waiting for data...")
 
+    # receive raw bytes, convert to json and then to custom class
+    # validates that no corruption occured to data during transfer
     while True:
         data, addr = sock.recvfrom(1024) # buffer size max for testing
-        data = json.loads(data)
-        print(f"received message from client {data}")
+        try:
+            rawJson = data.decode("utf-8")
+            print(f"received JSON from client {data}")
 
+            # verify packet wasn't curropted by converting into
+            # telemetry and checking against strict type safety
+            packet = telemetryData.telemetryData.model_validate_json(rawJson)
+            print(packet)
 
+        except ValidationError as e:
+            print("Rejected invalid telemetry packet!")
 
+        except Exception as e:
+            print("Error processing packet")
 
 
 
