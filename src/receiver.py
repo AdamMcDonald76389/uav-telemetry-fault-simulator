@@ -29,7 +29,7 @@ def main():
 
         except ValidationError as e:
             print("Rejected invalid telemetry packet!")
-
+            print(packet)
         except Exception as e:
             print("Error processing packet")
 

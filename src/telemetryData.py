@@ -4,7 +4,10 @@ from pydantic import BaseModel, Field, ConfigDict
 # enforces strict type matching and removes coercion
 class telemetryData(BaseModel):
 
-    model_config = ConfigDict(strict=True)
+    #strict construction so no invalid params
+    model_config = ConfigDict(
+        strict=True,
+        validate_assignment=True)  #disallow assignments so something like telemetryData.alt = -5 throws an exception
 
     deviceName: str
     sequence: int = Field(..., ge=0)
