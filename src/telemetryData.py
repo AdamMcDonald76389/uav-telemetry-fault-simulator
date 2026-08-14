@@ -7,7 +7,7 @@ class telemetryData(BaseModel):
     #strict construction so no invalid params
     model_config = ConfigDict(
         strict=True,
-        validate_assignment=True)  #disallow assignments so something like telemetryData.alt = -5 throws an exception
+        validate_assignment=True)  #revalidate assignments to verify in bounds
 
     deviceName: str
     sequence: int = Field(..., ge=0)

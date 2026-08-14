@@ -26,10 +26,10 @@ def main():
             # telemetry and checking against strict type safety
             packet = telemetryData.telemetryData.model_validate_json(rawJson)
             print(packet)
-
+            packet.altitude = -5
         except ValidationError as e:
             print("Rejected invalid telemetry packet!")
-            print(packet)
+            print(e)
         except Exception as e:
             print("Error processing packet")
 
