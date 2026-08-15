@@ -2,6 +2,9 @@
 import telemetryData
 import socket
 import json
+import time
+import random
+
 def main():
     UDP_IP = "127.0.0.1"
     UDP_PORT = 5005
@@ -13,13 +16,18 @@ def main():
         "speed": 240.1
 
     }
-
-    packet = telemetryData.telemetryData(**data)
-    print(packet)
-    
-    print("Sending message to receiver")
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM) # Internet, UDP
-    encodeAndSend(packet, sock, (UDP_IP, UDP_PORT))
+    packet = telemetryData.telemetryData(**data)
+    while True:
+        
+        print(packet)
+        
+        print("Sending message to receiver")
+        
+        encodeAndSend(packet, sock, (UDP_IP, UDP_PORT))
+        updatePacket(packet)
+            
+        time.sleep(1)
 
 #function to encode and send data to receiver using JSON
 def encodeAndSend(packet : telemetryData, sock: socket.socket, targetAddress: tuple):
@@ -32,6 +40,11 @@ def encodeAndSend(packet : telemetryData, sock: socket.socket, targetAddress: tu
     sock.sendto(dataBytes, targetAddress)
     
 
+#update data involving packet to simulate telemtry
+def updatePacket(packet : telemetryData):
+    packet.sequence +=1
+    packet.altitude += random.randint(-20, 20)
+    packet.speed += random.uniform(-5, 5)
 
 
 
