@@ -8,7 +8,7 @@ import random
 def main():
     UDP_IP = "127.0.0.1"
     UDP_PORT = 5005
-
+    
     data = {
         "deviceName": "UAV-001",
         "sequence": 1,
@@ -42,7 +42,7 @@ def encodeAndSend(packet : telemetryData, sock: socket.socket, targetAddress: tu
 
 #update data involving packet to simulate telemtry
 def updatePacket(packet : telemetryData):
-    packet.sequence +=1
+    packet.sequence += 1
     packet.altitude += random.randint(-20, 20)
     packet.speed += random.uniform(-5, 5)
 

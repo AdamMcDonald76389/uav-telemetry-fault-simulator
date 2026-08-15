@@ -8,8 +8,13 @@ from pydantic import ValidationError
 def main():
 
     #dictionary to check sequence numbers for validation
-    #key = devicename, val = sequence num
-    sequenceNum = {}
+    # highest sequence number associated with current telemetry
+    # compared against incoming packets
+    highest: dict[str, int] = {}
+    missingSequence: dict[str, set[int]] = {}
+    
+    
+    # network vars
     UDP_IP = "127.0.0.1"
     UDP_PORT = 5005
 
@@ -26,24 +31,39 @@ def main():
             rawJson = data.decode("utf-8")
             
 
-            # verify packet wasn't currupted by converting into
+            # verify packet wasn't corrupted by converting into
             # telemetry and checking against strict type safety
             packet = telemetryData.telemetryData.model_validate_json(rawJson)
             printUavStats(packet)
-            if packet.deviceName not in sequenceNum:
-                sequenceNum[packet.deviceName] = packet.sequence
-            elif packet.sequence != sequenceNum[packet.deviceName] + 1:
-                print("unexpected sequence number!")
+
+            # first time this uav has been seen
+            if packet.deviceName not in highest:
+                highest[packet.deviceName] = packet.sequence
+                # initialize empty set for potential missing packets later
+                missingSequence[packet.deviceName] = set()
+
+            # out of order or missing packet
+            elif packet.sequence > highest[packet.deviceName] + 1:
+                print(f"unexpected sequence number!: {packet.sequence}")
+                for seq in range(highest[packet.deviceName] + 1, packet.sequence):
+                    missingSequence[packet.deviceName].add(seq)
+                highest[packet.deviceName] = packet.sequence
+
+            elif packet.sequence in missingSequence[packet.deviceName]:
+                print(f" Late packet received: {packet.sequence}")
+                missingSequence[packet.deviceName].remove(packet.sequence)
+            # 
+            elif packet.sequence == highest[packet.deviceName] + 1:
+                highest[packet.deviceName] = packet.sequence
             else:
-                sequenceNum[packet.deviceName] +=1
-                
+                print(f"duplicate packet received!: {packet.sequence}")
 
 
         except ValidationError as e:
             print("Rejected invalid telemetry packet!")
             print(e)
-        except Exception as e:
-            print("Error processing packet")
+        #except Exception as e:
+        #    print("Error processing packet")
 
 
 # prints stats about telemetry
