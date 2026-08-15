@@ -6,6 +6,11 @@ import telemetryData
 from pydantic import ValidationError
 
 def main():
+
+    #dictionary to check sequence numbers for validation
+    #key = devicename, val = sequence num
+    sequenceNum = {}
+    sequenceNum["UAV-001"] = 5
     UDP_IP = "127.0.0.1"
     UDP_PORT = 5005
 
@@ -26,7 +31,8 @@ def main():
             # telemetry and checking against strict type safety
             packet = telemetryData.telemetryData.model_validate_json(rawJson)
             print(packet)
-            packet.altitude = -5
+            if packet.deviceName in sequenceNum:
+                print(packet.sequence)
         except ValidationError as e:
             print("Rejected invalid telemetry packet!")
             print(e)
