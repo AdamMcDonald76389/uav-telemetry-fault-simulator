@@ -5,6 +5,12 @@ import socket
 import telemetryData
 from pydantic import ValidationError
 
+
+
+# fixed global constants
+UDP_IP = "127.0.0.1"
+UDP_PORT = 5005
+START_SEQUENCE = 1
 def main():
 
     #dictionary to check sequence numbers for validation
@@ -15,9 +21,7 @@ def main():
     
     
     # network vars
-    UDP_IP = "127.0.0.1"
-    UDP_PORT = 5005
-
+    
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM) # Internet, #UDP
 
     sock.bind((UDP_IP, UDP_PORT))
@@ -38,9 +42,20 @@ def main():
 
             # first time this uav has been seen
             if packet.deviceName not in highest:
-                highest[packet.deviceName] = packet.sequence
-                # initialize empty set for potential missing packets later
                 missingSequence[packet.deviceName] = set()
+
+                if packet.sequence > START_SEQUENCE:
+                    missingSequence[packet.deviceName].update(
+                        range(START_SEQUENCE, packet.sequence)
+                    )
+
+                    print(
+                        f"Initial sequence gap! "
+                        f"Expected: {START_SEQUENCE}, "
+                        f"Received: {packet.sequence}"
+                    )
+
+                highest[packet.deviceName] = packet.sequence
 
             # out of order or missing packet
             elif packet.sequence > highest[packet.deviceName] + 1:

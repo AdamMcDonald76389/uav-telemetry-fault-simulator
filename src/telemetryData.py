@@ -10,6 +10,6 @@ class telemetryData(BaseModel):
         validate_assignment=True)  #revalidate assignments to verify in bounds
 
     deviceName: str
-    sequence: int = Field(..., ge=0)
+    sequence: int = Field(..., ge=1)
     altitude: int = Field(..., ge=0)
     speed: float = Field(..., ge=0.0)

@@ -5,10 +5,12 @@ import json
 import time
 import random
 
+# fixed network consants
+UDP_IP = "127.0.0.1"
+UDP_PORT = 5005
 def main():
-    UDP_IP = "127.0.0.1"
-    UDP_PORT = 5005
     
+
     data = {
         "deviceName": "UAV-001",
         "sequence": 1,
