@@ -10,7 +10,10 @@ import sys
 UDP_IP = "127.0.0.1"
 UDP_PORT = 5005
 # packet loss adjustable via cli on launch 
-PACKETLOSS = 0.05
+PACKETLOSS = 0
+
+REPEATEDCHANCE = 0.10
+
 def main():
     global PACKETLOSS
     if len(sys.argv) == 2:
@@ -36,9 +39,15 @@ def main():
         print("Sending message to receiver")
         
         dropped = random.uniform(0, 1.0)
+        repeat = random.uniform(0, 1.0)
         print(dropped)
         if dropped <= PACKETLOSS:
             print("Packet dropped!")
+            updatePacket(packet)
+            continue
+        elif repeat <= REPEATEDCHANCE:
+            encodeAndSend(packet, sock, (UDP_IP, UDP_PORT))
+            continue
         else:
             encodeAndSend(packet, sock, (UDP_IP, UDP_PORT))
         updatePacket(packet)
