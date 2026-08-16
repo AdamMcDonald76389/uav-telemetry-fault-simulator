@@ -1,5 +1,6 @@
 Project for sending simulated telemetry data from a UAV to a receiver;
-current implementation only encodes and decodes json in simulator.py and receiver.py respectively. 
-
-Next plan:
-Implement custom data structure for sending of payload data, add validation function for said data to confirm it is correct
+Currently sends telemetry from simulator to receiver via UDP sockets.
+receiver currently validates sequences to check if they are received in order using various checks
+telemetryData represents a very simplified version of the kind of data a uav might send
+packetloss can be determined via the cli by entering a value after python3 src/simulator.py "number"
+Currently has basic packet loss
