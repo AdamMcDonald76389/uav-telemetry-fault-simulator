@@ -10,77 +10,101 @@ import sys
 UDP_IP = "127.0.0.1"
 UDP_PORT = 5005
 # packet loss adjustable via cli on launch 
-PACKETLOSS = 0
+PACKETLOSS = 0.10
 # chance to repeat send packets
-REPEATEDCHANCE = 0
+REPEATEDCHANCE = 0.10
 # chance to send packets in wrong order/hold them
 HOLDCHANCE = 0.10
 
 
 def main():
     global PACKETLOSS
+    global REPEATEDCHANCE
+    global HOLDCHANCE
     if len(sys.argv) == 2:
         PACKETLOSS = float(sys.argv[1]) 
         if not 0.0 <= PACKETLOSS <= 1.0:
             print("Error, invalid packet loss entered")
             print("Valid values are betwen 0.0 - 1.0")
             sys.exit()
-    print(PACKETLOSS)
-    data = {
+    
+
+    # data section and creating list for packets
+    # allows support for multiple UAVS
+    # REFACTOR THIS 
+    data = []
+    data.append({
         "deviceName": "UAV-001",
         "sequence": 1,
         "altitude": 5000,
         "speed": 240.1
 
-    }
+    })
+    data.append({
+        "deviceName": "UAV-002",
+        "sequence": 1,
+        "altitude": 20000,
+        "speed": 300
+
+    })
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM) # Internet, UDP
-    packet = telemetryData.telemetryData(**data)
+
+
+
+    # REFACTOR
+    packet = telemetryData.telemetryData(**data[0])
+    packets = []
+    packets.append(packet)
+    packet = telemetryData.telemetryData(**data[1])
+    packets.append(packet)
     held = {}
     held.setdefault(packet.deviceName, {})
     while True:
-        print(packet)
+        # Refactor using process packets function later
+        for packet in packets:
+            print(packet)
 
-        dropped = random.random()
-        repeat = random.random()
-        hold = random.random()
+            dropped = random.random()
+            repeat = random.random()
+            hold = random.random()
 
-        sentCurrentPacket = False
+            sentCurrentPacket = False
 
-        if dropped < PACKETLOSS:
-            print(f"Packet {packet.sequence} dropped!")
+            if dropped < PACKETLOSS:
+                print(f"Packet {packet.sequence} dropped!")
 
-        elif repeat < REPEATEDCHANCE:
-            print(f"Packet {packet.sequence} duplicated!")
+            elif repeat < REPEATEDCHANCE:
+                print(f"Packet {packet.sequence} duplicated!")
 
-            encodeAndSend(packet, sock, (UDP_IP, UDP_PORT))
-            encodeAndSend(packet, sock, (UDP_IP, UDP_PORT))
+                encodeAndSend(packet, sock, (UDP_IP, UDP_PORT))
+                encodeAndSend(packet, sock, (UDP_IP, UDP_PORT))
 
-            sentCurrentPacket = True
+                sentCurrentPacket = True
 
-        elif hold < HOLDCHANCE:
-            print(f"Holding packet {packet.sequence}")
+            elif hold < HOLDCHANCE:
+                print(f"Holding packet {packet.sequence}")
 
-            held.setdefault(packet.deviceName, {})
-            held[packet.deviceName][packet.sequence] = packet.model_copy(deep=True)
+                held.setdefault(packet.deviceName, {})
+                held[packet.deviceName][packet.sequence] = packet.model_copy(deep=True)
 
-        else:
-            encodeAndSend(packet, sock, (UDP_IP, UDP_PORT))
-            sentCurrentPacket = True
+            else:
+                encodeAndSend(packet, sock, (UDP_IP, UDP_PORT))
+                sentCurrentPacket = True
 
-        # Only release an old packet after a newer packet was actually sent
-        if sentCurrentPacket and held.get(packet.deviceName):
-            minseq = min(held[packet.deviceName])
+            # Only release an old packet after a newer packet was actually sent
+            if sentCurrentPacket and held.get(packet.deviceName):
+                minseq = min(held[packet.deviceName])
 
-            # Don't accidentally release the packet we just dealt with
-            if minseq < packet.sequence:
-                heldPacket = held[packet.deviceName].pop(minseq)
+                # Don't accidentally release the packet we just dealt with
+                if minseq < packet.sequence:
+                    heldPacket = held[packet.deviceName].pop(minseq)
 
-                print(f"Releasing held packet {minseq}")
-                encodeAndSend(heldPacket, sock, (UDP_IP, UDP_PORT))
+                    print(f"Releasing held packet {minseq}")
+                    encodeAndSend(heldPacket, sock, (UDP_IP, UDP_PORT))
 
-        updatePacket(packet)
+            updatePacket(packet)
 
-        time.sleep(1)
+            time.sleep(1)
 
 #function to encode and send data to receiver using JSON
 def encodeAndSend(packet : telemetryData, sock: socket.socket, targetAddress: tuple):
@@ -98,6 +122,11 @@ def updatePacket(packet : telemetryData):
     packet.sequence += 1
     packet.altitude += random.randint(-20, 20)
     packet.speed += random.uniform(-5, 5)
+
+
+def processPacket(packet):
+    pass
+
 
 
 
