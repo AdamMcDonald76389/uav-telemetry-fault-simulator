@@ -11,8 +11,11 @@ UDP_IP = "127.0.0.1"
 UDP_PORT = 5005
 # packet loss adjustable via cli on launch 
 PACKETLOSS = 0
+# chance to repeat send packets
+REPEATEDCHANCE = 0
+# chance to send packets in wrong order/hold them
+HOLDCHANCE = 0.10
 
-REPEATEDCHANCE = 0.10
 
 def main():
     global PACKETLOSS
@@ -32,26 +35,51 @@ def main():
     }
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM) # Internet, UDP
     packet = telemetryData.telemetryData(**data)
+    held = {}
+    held.setdefault(packet.deviceName, {})
     while True:
-        
         print(packet)
-        
-        print("Sending message to receiver")
-        
-        dropped = random.uniform(0, 1.0)
-        repeat = random.uniform(0, 1.0)
-        print(dropped)
-        if dropped <= PACKETLOSS:
-            print("Packet dropped!")
-            updatePacket(packet)
-            continue
-        elif repeat <= REPEATEDCHANCE:
+
+        dropped = random.random()
+        repeat = random.random()
+        hold = random.random()
+
+        sentCurrentPacket = False
+
+        if dropped < PACKETLOSS:
+            print(f"Packet {packet.sequence} dropped!")
+
+        elif repeat < REPEATEDCHANCE:
+            print(f"Packet {packet.sequence} duplicated!")
+
             encodeAndSend(packet, sock, (UDP_IP, UDP_PORT))
-            continue
+            encodeAndSend(packet, sock, (UDP_IP, UDP_PORT))
+
+            sentCurrentPacket = True
+
+        elif hold < HOLDCHANCE:
+            print(f"Holding packet {packet.sequence}")
+
+            held.setdefault(packet.deviceName, {})
+            held[packet.deviceName][packet.sequence] = packet.model_copy(deep=True)
+
         else:
             encodeAndSend(packet, sock, (UDP_IP, UDP_PORT))
+            sentCurrentPacket = True
+
+        # Only release an old packet after a newer packet was actually sent
+        if sentCurrentPacket and held.get(packet.deviceName):
+            minseq = min(held[packet.deviceName])
+
+            # Don't accidentally release the packet we just dealt with
+            if minseq < packet.sequence:
+                heldPacket = held[packet.deviceName].pop(minseq)
+
+                print(f"Releasing held packet {minseq}")
+                encodeAndSend(heldPacket, sock, (UDP_IP, UDP_PORT))
+
         updatePacket(packet)
-            
+
         time.sleep(1)
 
 #function to encode and send data to receiver using JSON
