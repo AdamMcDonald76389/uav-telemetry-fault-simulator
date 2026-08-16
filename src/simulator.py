@@ -4,13 +4,22 @@ import socket
 import json
 import time
 import random
+import sys
 
 # fixed network consants
 UDP_IP = "127.0.0.1"
 UDP_PORT = 5005
+# packet loss adjustable via cli on launch 
+PACKETLOSS = 0.05
 def main():
-    
-
+    global PACKETLOSS
+    if len(sys.argv) == 2:
+        PACKETLOSS = float(sys.argv[1]) 
+        if not 0.0 <= PACKETLOSS <= 1.0:
+            print("Error, invalid packet loss entered")
+            print("Valid values are betwen 0.0 - 1.0")
+            sys.exit()
+    print(PACKETLOSS)
     data = {
         "deviceName": "UAV-001",
         "sequence": 1,
@@ -26,7 +35,12 @@ def main():
         
         print("Sending message to receiver")
         
-        encodeAndSend(packet, sock, (UDP_IP, UDP_PORT))
+        dropped = random.uniform(0, 1.0)
+        print(dropped)
+        if dropped <= PACKETLOSS:
+            print("Packet dropped!")
+        else:
+            encodeAndSend(packet, sock, (UDP_IP, UDP_PORT))
         updatePacket(packet)
             
         time.sleep(1)
