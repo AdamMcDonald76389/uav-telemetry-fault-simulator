@@ -49,7 +49,7 @@ def main():
     })
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM) # Internet, UDP
 
-
+    
 
     # REFACTOR
     packet = telemetryData.telemetryData(**data[0])
@@ -58,7 +58,8 @@ def main():
     packet = telemetryData.telemetryData(**data[1])
     packets.append(packet)
     held = {}
-    held.setdefault(packet.deviceName, {})
+    for packet in packets:
+        held.setdefault(packet.deviceName, {})
     while True:
         # Refactor using process packets function later
         for packet in packets:

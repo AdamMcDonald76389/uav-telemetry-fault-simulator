@@ -11,5 +11,5 @@ class telemetryData(BaseModel):
 
     deviceName: str
     sequence: int = Field(..., ge=1)
-    altitude: int = Field(..., ge=0)
-    speed: float = Field(..., ge=0.0)
+    altitude: int = Field(..., ge=0, le=30000)
+    speed: float = Field(..., ge=0.0, le=500.0)
