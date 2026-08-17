@@ -67,8 +67,7 @@ def main():
             processPacket(packet, held, sock)
 
             updatePacket(packet)
-
-            time.sleep(1)
+        time.sleep(1)   
 
 #function to encode and send data to receiver using JSON
 def encodeAndSend(packet : telemetryData, sock: socket.socket, targetAddress: tuple):
@@ -114,7 +113,7 @@ def processPacket(packet, held, sock):
         print(f"Holding packet {packet.sequence}")
 
         held.setdefault(packet.deviceName, {})
-        held[packet.deviceName][packet.sequence] = packet.mod
+        held[packet.deviceName][packet.sequence] = packet.model_copy(deep=True)
 
 
     else:
@@ -131,7 +130,6 @@ def processPacket(packet, held, sock):
 
             print(f"Releasing held packet {minseq}")
             encodeAndSend(heldPacket, sock, (UDP_IP, UDP_PORT))
-    updatePacket(packet)
     time.sleep(1)
 
 
