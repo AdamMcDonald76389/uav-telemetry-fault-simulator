@@ -64,45 +64,7 @@ def main():
     while True:
         # Refactor using process packets function later
         for packet in packets:
-            print(packet)
-
-            dropped = random.random()
-            repeat = random.random()
-            hold = random.random()
-
-            sentCurrentPacket = False
-
-            if dropped < PACKETLOSS:
-                print(f"Packet {packet.sequence} dropped!")
-
-            elif repeat < REPEATEDCHANCE:
-                print(f"Packet {packet.sequence} duplicated!")
-
-                encodeAndSend(packet, sock, (UDP_IP, UDP_PORT))
-                encodeAndSend(packet, sock, (UDP_IP, UDP_PORT))
-
-                sentCurrentPacket = True
-
-            elif hold < HOLDCHANCE:
-                print(f"Holding packet {packet.sequence}")
-
-                held.setdefault(packet.deviceName, {})
-                held[packet.deviceName][packet.sequence] = packet.model_copy(deep=True)
-
-            else:
-                encodeAndSend(packet, sock, (UDP_IP, UDP_PORT))
-                sentCurrentPacket = True
-
-            # Only release an old packet after a newer packet was actually sent
-            if sentCurrentPacket and held.get(packet.deviceName):
-                minseq = min(held[packet.deviceName])
-
-                # Don't accidentally release the packet we just dealt with
-                if minseq < packet.sequence:
-                    heldPacket = held[packet.deviceName].pop(minseq)
-
-                    print(f"Releasing held packet {minseq}")
-                    encodeAndSend(heldPacket, sock, (UDP_IP, UDP_PORT))
+            processPacket(packet, held, sock)
 
             updatePacket(packet)
 
@@ -158,7 +120,7 @@ def processPacket(packet, held, sock):
     else:
         encodeAndSend(packet, sock, (UDP_IP, UDP_PORT))
         sentCurrentPacket = True
-        
+
     # make sure to actually send a newer packet before sending
     # previously held packet
     if sentCurrentPacket and held.get(packet.deviceName):
