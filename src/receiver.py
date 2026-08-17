@@ -1,6 +1,5 @@
 # receiver simulator, listens for and receives packets from
 # simulator
-import json
 import socket
 import telemetryData
 from pydantic import ValidationError
