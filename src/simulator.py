@@ -14,12 +14,16 @@ PACKETLOSS = 0.10
 REPEATEDCHANCE = 0.10
 # chance to send packets in wrong order/hold them
 HOLDCHANCE = 0.10
-
+# chance to flip a byte via corruption
+CORRUPTIONRATE = 0.40
 
 def main():
+    #global vars
     global PACKETLOSS
     global REPEATEDCHANCE
     global HOLDCHANCE
+    global CORRUPTIONRATE
+
     if len(sys.argv) == 4:
         PACKETLOSS = float(sys.argv[1]) 
         REPEATEDCHANCE = float(sys.argv[2])
@@ -93,7 +97,7 @@ def processPacket(packet, held, sock):
     dropped = random.random()
     repeat = random.random()
     hold = random.random()
-
+    corrupt = random.random()
     sentCurrentPacket = False
     
     # drop packet
@@ -115,7 +119,11 @@ def processPacket(packet, held, sock):
         held.setdefault(packet.deviceName, {})
         held[packet.deviceName][packet.sequence] = packet.model_copy(deep=True)
 
-
+    elif corrupt < CORRUPTIONRATE:
+        print(f"sending corrupted packet {packet.sequence}")
+        sendCorrupted(packet, sock, (UDP_IP, UDP_PORT))
+        sentCurrentPacket = True
+    
     else:
         encodeAndSend(packet, sock, (UDP_IP, UDP_PORT))
         sentCurrentPacket = True
@@ -131,6 +139,16 @@ def processPacket(packet, held, sock):
             print(f"Releasing held packet {minseq}")
             encodeAndSend(heldPacket, sock, (UDP_IP, UDP_PORT))
 
+# send corrupted packets to receiver 
+def sendCorrupted(packet, sock, targetAddress):
+
+    data = packet.model_dump_json()
+    dataBytes = bytearray(data.encode("utf-8"))
+    
+    index = random.randrange(len(dataBytes))
+    dataBytes[index] ^= 0x01
+    
+    sock.sendto(bytes(dataBytes), targetAddress)
 
 if __name__ == "__main__":
     main()
