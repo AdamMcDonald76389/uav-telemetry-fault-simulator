@@ -27,56 +27,18 @@ def main():
     print("Server started and waiting for data...")
 
     # receive raw bytes, convert to json and then to custom class
-    # validates that no corruption occured to data during transfer
+    # latter is done inside of handlePacket function
     while True:
-        data, addr = sock.recvfrom(1024) # buffer size max for testing
+        # adr received from recv tuple but not used
+        data, _ = sock.recvfrom(1024) # buffer size max for testing
         try:
-            rawJson = data.decode("utf-8")
-            
-
-            # verify packet wasn't corrupted by converting into
-            # telemetry and checking against strict type safety
-            packet = telemetryData.telemetryData.model_validate_json(rawJson)
-            printUavStats(packet)
-
-            # first time this uav has been seen
-            if packet.deviceName not in highest:
-                missingSequence[packet.deviceName] = set()
-
-                if packet.sequence > START_SEQUENCE:
-                    missingSequence[packet.deviceName].update(
-                        range(START_SEQUENCE, packet.sequence)
-                    )
-
-                    print(
-                        f"Initial sequence gap! "
-                        f"Expected: {START_SEQUENCE}, "
-                        f"Received: {packet.sequence}"
-                    )
-
-                highest[packet.deviceName] = packet.sequence
-
-            # out of order or missing packet
-            elif packet.sequence > highest[packet.deviceName] + 1:
-                print(f"unexpected sequence number!: {packet.sequence}")
-                for seq in range(highest[packet.deviceName] + 1, packet.sequence):
-                    missingSequence[packet.deviceName].add(seq)
-                highest[packet.deviceName] = packet.sequence
-
-            elif packet.sequence in missingSequence[packet.deviceName]:
-                print(f" Late packet received: {packet.sequence}")
-                missingSequence[packet.deviceName].remove(packet.sequence)
-            # 
-            elif packet.sequence == highest[packet.deviceName] + 1:
-                highest[packet.deviceName] = packet.sequence
-            else:
-                print(f"duplicate packet received!: {packet.sequence}")
+            handlePacket(data, highest, missingSequence)
 
 
         except ValidationError as e:
             print("Rejected invalid telemetry packet!")
             print(e)
-        #except Exception as e:
+        # except Exception as e:
         #    print("Error processing packet")
 
 
@@ -88,6 +50,45 @@ def printUavStats(packet):
     f"Altitude: {packet.altitude} | "
     f"Speed: {packet.speed:.2f}"
 )
+
+def handlePacket(data, highest, missingSequence):
+    rawJson = data.decode("utf-8")
+    
+    packet = telemetryData.telemetryData.model_validate_json(rawJson)
+    printUavStats(packet)
+
+    if packet.deviceName not in highest:
+        missingSequence[packet.deviceName] = set()
+
+        # gap outside of expected init sequence #
+        if packet.sequence > START_SEQUENCE:
+            missingSequence[packet.deviceName].update(
+                range(START_SEQUENCE, packet.sequence)
+            )
+            print(
+                f"Initial sequence gap! "
+                f"Expected: {START_SEQUENCE}, "
+                f"Received {packet.sequence}"
+            )
+        highest[packet.deviceName] = packet.sequence
+
+
+    elif packet.sequence > highest[packet.deviceName] + 1:
+        print(f"unexpected sequence number!: {packet.sequence}")
+        for seq in range(highest[packet.deviceName] + 1, packet.sequence):
+            missingSequence[packet.deviceName].add(seq)
+        highest[packet.deviceName] = packet.sequence
+    
+    elif packet.sequence in missingSequence[packet.deviceName]:
+        print(f" Late packet received: {packet.sequence}")
+        missingSequence[packet.deviceName].remove(packet.sequence)
+    
+    elif packet.sequence == highest[packet.deviceName] + 1:
+        highest[packet.deviceName] = packet.sequence
+    else:
+        print(f"duplicate packet received!: {packet.sequence}")
+
+
 
 
 if __name__ == "__main__":

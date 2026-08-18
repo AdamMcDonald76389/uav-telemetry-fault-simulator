@@ -130,7 +130,6 @@ def processPacket(packet, held, sock):
 
             print(f"Releasing held packet {minseq}")
             encodeAndSend(heldPacket, sock, (UDP_IP, UDP_PORT))
-    time.sleep(1)
 
 
 if __name__ == "__main__":
