@@ -9,13 +9,13 @@ import sys
 UDP_IP = "127.0.0.1"
 UDP_PORT = 5005
 # packet loss adjustable via cli on launch 
-PACKETLOSS = 0.10
+PACKETLOSS = 0.01
 # chance to repeat send packets
-REPEATEDCHANCE = 0.10
+REPEATEDCHANCE = 0.01
 # chance to send packets in wrong order/hold them
-HOLDCHANCE = 0.10
+HOLDCHANCE = 0.01
 # chance to flip a byte via corruption
-CORRUPTIONRATE = 0.40
+CORRUPTIONRATE = 0.01
 
 def main():
     #global vars
@@ -32,37 +32,11 @@ def main():
             print("Error, invalid packet loss entered")
             print("Valid values are betwen 0.0 - 1.0")
             sys.exit()
-    
-
-    # data section and creating list for packets
-    # allows support for multiple UAVS
-    # REFACTOR THIS 
-    data = []
-    data.append({
-        "deviceName": "UAV-001",
-        "sequence": 1,
-        "altitude": 5000,
-        "speed": 240.1
-
-    })
-    data.append({
-        "deviceName": "UAV-002",
-        "sequence": 1,
-        "altitude": 20000,
-        "speed": 300
-
-    })
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM) # Internet, UDP
-
-    
-
-    # REFACTOR
-    packet = telemetryData.telemetryData(**data[0])
+    held = {} # for held packets
     packets = []
-    packets.append(packet)
-    packet = telemetryData.telemetryData(**data[1])
-    packets.append(packet)
-    held = {}
+    for i in range(1, 51):
+        packets.append(createUAV(i))
     for packet in packets:
         held.setdefault(packet.deviceName, {})
     while True:
@@ -157,7 +131,8 @@ def createUAV(index):
         sequence = 1,
         altitude = random.randint(5000, 25000),
         speed = random.uniform(100, 400)
-    ) 
+    )
+     
     
 
 if __name__ == "__main__":
