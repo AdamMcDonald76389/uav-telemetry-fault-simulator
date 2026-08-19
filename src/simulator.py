@@ -150,5 +150,15 @@ def sendCorrupted(packet, sock, targetAddress):
     
     sock.sendto(bytes(dataBytes), targetAddress)
 
+
+def createUAV(index):
+    return telemetryData.telemetryData(
+        deviceName = f"UAV-{index:03d}",
+        sequence = 1,
+        altitude = random.randint(5000, 25000),
+        speed = random.uniform(100, 400)
+    ) 
+    
+
 if __name__ == "__main__":
     main()
