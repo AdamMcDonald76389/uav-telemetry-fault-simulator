@@ -12,7 +12,7 @@ UDP_PORT = 5005
 START_SEQUENCE = 1
 def main():
 
-    #dictionary to check sequence numbers for validation
+    # dictionary to check sequence numbers for validation
     # highest sequence number associated with current telemetry
     # compared against incoming packets
     highest: dict[str, int] = {}

@@ -40,7 +40,6 @@ def main():
     for packet in packets:
         held.setdefault(packet.deviceName, {})
     while True:
-        # Refactor using process packets function later
         for packet in packets:
             processPacket(packet, held, sock)
 
@@ -50,7 +49,7 @@ def main():
 #function to encode and send data to receiver using JSON
 def encodeAndSend(packet : telemetryData, sock: socket.socket, targetAddress: tuple):
     
-    # message serialized and then encoded 
+    # turn telemetry data into JSON->Bytes
     data = packet.model_dump_json()
     dataBytes = data.encode("utf-8")
 
@@ -90,6 +89,8 @@ def processPacket(packet, held, sock):
     elif hold < HOLDCHANCE:
         print(f"Holding packet {packet.sequence}")
 
+        # redundant but argument exists whether to keep this one
+        # or the code in the for loop to initialize UAVS
         held.setdefault(packet.deviceName, {})
         held[packet.deviceName][packet.sequence] = packet.model_copy(deep=True)
 
