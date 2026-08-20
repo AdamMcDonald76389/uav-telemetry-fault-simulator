@@ -57,6 +57,9 @@ def handlePacket(data, highest, missingSequence):
     packet = telemetryData.telemetryData.model_validate_json(rawJson)
     printUavStats(packet)
 
+    # very first instance of this UAV
+    # is added to dictionary
+    # also checks for if first sequence # was dropped
     if packet.deviceName not in highest:
         missingSequence[packet.deviceName] = set()
 

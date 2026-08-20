@@ -4,44 +4,34 @@ import socket
 import time
 import random
 import sys
+import argparse
 
 # fixed network consants
 UDP_IP = "127.0.0.1"
 UDP_PORT = 5005
-# packet loss adjustable via cli on launch 
-PACKETLOSS = 0.01
-# chance to repeat send packets
-REPEATEDCHANCE = 0.01
-# chance to send packets in wrong order/hold them
-HOLDCHANCE = 0.01
-# chance to flip a byte via corruption
-CORRUPTIONRATE = 0.01
 
 def main():
-    #global vars
-    global PACKETLOSS
-    global REPEATEDCHANCE
-    global HOLDCHANCE
-    global CORRUPTIONRATE
 
-    if len(sys.argv) == 4:
-        PACKETLOSS = float(sys.argv[1]) 
-        REPEATEDCHANCE = float(sys.argv[2])
-        HOLDCHANCE = float(sys.argv[3])
-        if not 0.0 <= PACKETLOSS <= 1.0:
-            print("Error, invalid packet loss entered")
-            print("Valid values are betwen 0.0 - 1.0")
-            sys.exit()
+    args = parseArguments()
+
+    print(f"Packet loss: {args.packet_loss}")
+    print(f"Repeat chance: {args.repeat_chance}")
+    print(f"Hold chance: {args.hold_chance}")
+    print(f"Corruption rate: {args.corruption_rate}")
+    print(f"UAVs: {args.uavs}")
+
+
+
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM) # Internet, UDP
     held = {} # for held packets
     packets = []
-    for i in range(1, 51):
+    for i in range(1, args.uavs + 1):
         packets.append(createUAV(i))
     for packet in packets:
         held.setdefault(packet.deviceName, {})
     while True:
         for packet in packets:
-            processPacket(packet, held, sock)
+            processPacket(packet, held, sock, args)
 
             updatePacket(packet)
         time.sleep(1)   
@@ -66,7 +56,7 @@ def updatePacket(packet : telemetryData):
 # function to process packets 
 # process packets and uses conditionals for
 # determing simulated network faults
-def processPacket(packet, held, sock):
+def processPacket(packet, held, sock, args):
     dropped = random.random()
     repeat = random.random()
     hold = random.random()
@@ -74,11 +64,11 @@ def processPacket(packet, held, sock):
     sentCurrentPacket = False
     
     # drop packet
-    if dropped < PACKETLOSS:
+    if dropped < args.packet_loss:
         print(f"Packet {packet.sequence} dropped!")
 
     # repeat send packet twice
-    elif repeat < REPEATEDCHANCE:
+    elif repeat < args.repeat_chance:
         print(f"Packet {packet.sequence} duplicated!")
 
         encodeAndSend(packet, sock, (UDP_IP, UDP_PORT))
@@ -86,15 +76,15 @@ def processPacket(packet, held, sock):
 
         sentCurrentPacket = True
     # dont send packet and add to hold 
-    elif hold < HOLDCHANCE:
+    elif hold < args.hold_chance:
         print(f"Holding packet {packet.sequence}")
 
         # redundant but argument exists whether to keep this one
         # or the code in the for loop to initialize UAVS
-        held.setdefault(packet.deviceName, {})
+        
         held[packet.deviceName][packet.sequence] = packet.model_copy(deep=True)
 
-    elif corrupt < CORRUPTIONRATE:
+    elif corrupt < args.corruption_rate:
         print(f"sending corrupted packet {packet.sequence}")
         sendCorrupted(packet, sock, (UDP_IP, UDP_PORT))
         sentCurrentPacket = True
@@ -135,6 +125,66 @@ def createUAV(index):
     )
      
     
+def parseArguments():
+    parser = argparse.ArgumentParser(
+        description="UAV Telemetry Fault Simulator"
+    )
+
+    parser.add_argument(
+        "--packet-loss",
+        type=probability,
+        default=0.0,
+        help="Chance of dropping a packet"
+    )
+
+    parser.add_argument(
+        "--repeat-chance",
+        type=probability,
+        default=0.0,
+        help="Chance of duplicating a packet"
+    )
+
+    parser.add_argument(
+        "--hold-chance",
+        type=probability,
+        default=0.0,
+        help="Chance of holding a packet"
+    )
+
+    parser.add_argument(
+        "--corruption-rate",
+        type=probability,
+        default=0.0,
+        help="Chance of corrupting a packet"
+    )
+
+    parser.add_argument(
+        "--uavs",
+        type=positiveInteger,
+        default=5,
+        help="Number of UAVs to simulate"
+    )
+
+    return parser.parse_args()
+
+def probability(value):
+    value = float(value)
+
+    if not 0.0 <= value <= 1.0:
+        raise argparse.ArgumentTypeError(
+            "value must be between 0.0 and 1.0"
+        )
+
+    return value
+
+def positiveInteger(value):
+    value = int(value)
+    if value < 1:
+        raise argparse.ArgumentTypeError(
+            "must have at least 1 UAV"
+        )
+    return value
+
 
 if __name__ == "__main__":
     main()
