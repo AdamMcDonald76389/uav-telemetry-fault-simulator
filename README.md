@@ -51,7 +51,7 @@ Example:
   "altitude": 10500,
   "speed": 245.7
 }
-
+'''
 
 ## Receiver
 
@@ -72,3 +72,4 @@ Detected faults are logged by the receiver.
 
 ```bash
 python3 src/simulator.py --uavs 50 --packet-loss 0.01 --hold-chance 0.02
+
