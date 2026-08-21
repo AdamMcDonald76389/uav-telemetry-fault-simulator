@@ -51,7 +51,7 @@ Example:
   "altitude": 10500,
   "speed": 245.7
 }
-'''
+```
 
 ## Receiver
 
