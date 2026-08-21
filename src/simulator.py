@@ -1,5 +1,5 @@
 # simulator for uav. currently only sends data to receiver via simple message
-import telemetryData
+from telemetryData import telemetryData
 import socket
 import time
 import random
@@ -37,7 +37,7 @@ def main():
         time.sleep(1)   
 
 #function to encode and send data to receiver using JSON
-def encodeAndSend(packet : telemetryData, sock: socket.socket, targetAddress: tuple):
+def encodeAndSend(packet: telemetryData, sock: socket.socket, targetAddress: tuple):
     
     # turn telemetry data into JSON->Bytes
     data = packet.model_dump_json()
@@ -117,7 +117,7 @@ def sendCorrupted(packet, sock, targetAddress):
 
 
 def createUAV(index):
-    return telemetryData.telemetryData(
+    return telemetryData(
         deviceName = f"UAV-{index:03d}",
         sequence = 1,
         altitude = random.randint(5000, 25000),
