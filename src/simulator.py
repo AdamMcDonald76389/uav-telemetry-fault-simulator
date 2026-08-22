@@ -1,5 +1,5 @@
 # simulator for uav. currently only sends data to receiver via simple message
-from telemetryData import telemetryData
+from .telemetryData import telemetryData
 import socket
 import time
 import random

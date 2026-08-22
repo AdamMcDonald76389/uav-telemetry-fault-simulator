@@ -1,7 +1,7 @@
 # receiver simulator, listens for and receives packets from
 # simulator
 import socket
-import telemetryData
+from .telemetryData import telemetryData
 from pydantic import ValidationError
 
 
@@ -54,7 +54,7 @@ def printUavStats(packet):
 def handlePacket(data, highest, missingSequence):
     rawJson = data.decode("utf-8")
     
-    packet = telemetryData.telemetryData.model_validate_json(rawJson)
+    packet = telemetryData.model_validate_json(rawJson)
     printUavStats(packet)
 
     # very first instance of this UAV
