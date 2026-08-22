@@ -1,3 +1,7 @@
+#########
+# CURRENTLY OUTDATED WILL NOT WORK
+
+#########
 # script for starting both server and simulator 
 # in separate windows
 # mac and linux compatability only

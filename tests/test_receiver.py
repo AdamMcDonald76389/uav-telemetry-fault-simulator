@@ -3,3 +3,7 @@
 
 
 import pytest
+
+
+def testBaseCase():
+    pass
