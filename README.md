@@ -69,7 +69,8 @@ introduced by the simulator, including:
 Detected faults are logged by the receiver.
 
 ## Usage Examples
-
+In two separate windows
 ```bash
-python3 src/simulator.py --uavs 50 --packet-loss 0.01 --hold-chance 0.02
+python3 -m src.receiver
+python3 -m src.simulator --uavs 50 --packet-loss 0.01 --hold-chance 0.02
 
