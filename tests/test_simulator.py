@@ -30,9 +30,17 @@ def testCorrupt(monkeypatch):
     assert len(sentData) == len(data)
     assert sentData[0] == data[0] ^ 0x01
 
-def testLoss():
-    pass
+def testLoss(monkeypatch):
+    mock_args = Mock()
+    mock_args.packet_loss = 0.1
+    monkeypatch.setattr(simulator, "args", mock_args, raising = False)
+    monkeypatch.setattr(simulator.random, "random", lambda: 0.0)
+    packet = simulator.telemetryData(deviceName="UAV-002", sequence=1, altitude=5000, speed=330)
+    mockSock = Mock()
+    targetAddress = ("127.0.0.1", 500)
 
+    simulator.processPacket(packet, mockSock, targetAddress, mock_args)
+    mockSock.sendto.assert_not_called()
 
 
 
