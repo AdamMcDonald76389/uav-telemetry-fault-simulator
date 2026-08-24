@@ -86,7 +86,7 @@ def handlePacket(data, highest, missingSequence):
         highest[packet.deviceName] = packet.sequence
     
     elif packet.sequence in missingSequence[packet.deviceName]:
-        print(f" Late packet received: {packet.sequence}")
+        print(f" Late packet received!: {packet.sequence}")
         missingSequence[packet.deviceName].remove(packet.sequence)
     
     elif packet.sequence == highest[packet.deviceName] + 1:
