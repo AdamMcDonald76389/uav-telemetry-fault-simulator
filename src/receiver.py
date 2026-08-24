@@ -55,6 +55,9 @@ def handlePacket(data, highest, missingSequence):
     rawJson = data.decode("utf-8")
     
     packet = telemetryData.model_validate_json(rawJson)
+
+    # will cause unexpected errors with higher amounts of uavs
+    # owing to load imposed by console output
     printUavStats(packet)
 
     # very first instance of this UAV
