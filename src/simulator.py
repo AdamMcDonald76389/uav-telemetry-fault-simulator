@@ -1,17 +1,18 @@
-# simulator for uav. currently only sends data to receiver via simple message
-from .telemetryData import telemetryData
+import argparse
+import random
 import socket
 import time
-import random
-import sys
-import argparse
 
-# fixed network consants
+from .telemetryData import telemetryData
+
+
 UDP_IP = "127.0.0.1"
 UDP_PORT = 5005
+TARGET_ADDRESS = (UDP_IP, UDP_PORT)
+UPDATE_INTERVAL = 1
 
-def main():
 
+def main() -> None:
     args = parseArguments()
 
     print(f"Packet loss: {args.packet_loss}")
@@ -20,112 +21,132 @@ def main():
     print(f"Corruption rate: {args.corruption_rate}")
     print(f"UAVs: {args.uavs}")
 
+    sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 
+    packets = [createUAV(i) for i in range(1, args.uavs + 1)]
+    held: dict[str, dict[int, telemetryData]] = {
+        packet.deviceName: {} for packet in packets
+    }
 
-    sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM) # Internet, UDP
-    held = {} # for held packets
-    packets = []
-    for i in range(1, args.uavs + 1):
-        packets.append(createUAV(i))
-    for packet in packets:
-        held.setdefault(packet.deviceName, {})
     while True:
         for packet in packets:
             processPacket(packet, held, sock, args)
-
             updatePacket(packet)
-        time.sleep(1)   
 
-#function to encode and send data to receiver using JSON
-def encodeAndSend(packet: telemetryData, sock: socket.socket, targetAddress: tuple):
-    
-    # turn telemetry data into JSON->Bytes
-    data = packet.model_dump_json()
-    dataBytes = data.encode("utf-8")
+        time.sleep(UPDATE_INTERVAL)
 
-    # send to receiver
+
+def encodeAndSend(
+    packet: telemetryData,
+    sock: socket.socket,
+    targetAddress: tuple[str, int]
+) -> None:
+    """Serialize a telemetry packet to JSON and send it over UDP."""
+    dataBytes = packet.model_dump_json().encode("utf-8")
     sock.sendto(dataBytes, targetAddress)
-    
 
-#update data involving packet to simulate telemtry
-def updatePacket(packet : telemetryData):
+
+def updatePacket(packet: telemetryData) -> None:
+    """Advance a UAV's sequence number and update its telemetry."""
     packet.sequence += 1
-    packet.altitude = max(0, min(30000, packet.altitude + random.randint(-20, 20)))
-    packet.speed = max(0.0, min(500.0, packet.speed + random.uniform(-5, 5)))
 
-# function to process packets 
-# process packets and uses conditionals for
-# determing simulated network faults
-def processPacket(packet, held, sock, args):
+    # Clamp generated values to the telemetry model's valid ranges
+    packet.altitude = max(
+        0,
+        min(
+            30000,
+            packet.altitude + random.randint(-20, 20)
+        )
+    )
+
+    packet.speed = max(
+        0.0,
+        min(
+            500.0,
+            packet.speed + random.uniform(-5, 5)
+        )
+    )
+
+
+def processPacket(
+    packet: telemetryData,
+    held: dict[str, dict[int, telemetryData]],
+    sock: socket.socket,
+    args: argparse.Namespace
+) -> None:
+    """Apply simulated network faults and transmit a telemetry packet."""
     dropped = random.random()
     repeat = random.random()
     hold = random.random()
     corrupt = random.random()
+
     sentCurrentPacket = False
-    
-    # drop packet
+
     if dropped < args.packet_loss:
         print(f"Packet {packet.sequence} dropped!")
 
-    # repeat send packet twice
     elif repeat < args.repeat_chance:
         print(f"Packet {packet.sequence} duplicated!")
 
-        encodeAndSend(packet, sock, (UDP_IP, UDP_PORT))
-        encodeAndSend(packet, sock, (UDP_IP, UDP_PORT))
+        encodeAndSend(packet, sock, TARGET_ADDRESS)
+        encodeAndSend(packet, sock, TARGET_ADDRESS)
 
         sentCurrentPacket = True
-    # dont send packet and add to hold 
+
     elif hold < args.hold_chance:
         print(f"Holding packet {packet.sequence}")
 
-        # redundant but argument exists whether to keep this one
-        # or the code in the for loop to initialize UAVS
-        
-        held[packet.deviceName][packet.sequence] = packet.model_copy(deep=True)
+        # Store a copy so later telemetry updates do not modify the held packet
+        held[packet.deviceName][packet.sequence] = packet.model_copy(
+            deep=True
+        )
 
     elif corrupt < args.corruption_rate:
-        print(f"sending corrupted packet {packet.sequence}")
-        sendCorrupted(packet, sock, (UDP_IP, UDP_PORT))
+        print(f"Sending corrupted packet {packet.sequence}")
+
+        sendCorrupted(packet, sock, TARGET_ADDRESS)
         sentCurrentPacket = True
-    
+
     else:
-        encodeAndSend(packet, sock, (UDP_IP, UDP_PORT))
+        encodeAndSend(packet, sock, TARGET_ADDRESS)
         sentCurrentPacket = True
 
-    # make sure to actually send a newer packet before sending
-    # previously held packet
-    if sentCurrentPacket and held.get(packet.deviceName):
-        minseq = min(held[packet.deviceName])
+    # Release the oldest held packet only after a newer packet was sent
+    if sentCurrentPacket and held[packet.deviceName]:
+        minSequence = min(held[packet.deviceName])
 
-        if minseq < packet.sequence:
-            heldPacket = held[packet.deviceName].pop(minseq)
+        if minSequence < packet.sequence:
+            heldPacket = held[packet.deviceName].pop(minSequence)
 
-            print(f"Releasing held packet {minseq}")
-            encodeAndSend(heldPacket, sock, (UDP_IP, UDP_PORT))
+            print(f"Releasing held packet {minSequence}")
+            encodeAndSend(heldPacket, sock, TARGET_ADDRESS)
 
-# send corrupted packets to receiver 
-def sendCorrupted(packet, sock, targetAddress):
 
-    data = packet.model_dump_json()
-    dataBytes = bytearray(data.encode("utf-8"))
-    
+def sendCorrupted(
+    packet: telemetryData,
+    sock: socket.socket,
+    targetAddress: tuple[str, int]
+) -> None:
+    """Corrupt one bit in a serialized telemetry packet before sending it."""
+    dataBytes = bytearray(packet.model_dump_json().encode("utf-8"))
+
     index = random.randrange(len(dataBytes))
     dataBytes[index] ^= 0x01
-    
+
     sock.sendto(bytes(dataBytes), targetAddress)
 
 
-def createUAV(index):
+def createUAV(index: int) -> telemetryData:
+    """Create a UAV with randomized initial telemetry."""
     return telemetryData(
-        deviceName = f"UAV-{index:03d}",
-        sequence = 1,
-        altitude = random.randint(5000, 25000),
-        speed = random.uniform(100, 400)
+        deviceName=f"UAV-{index:03d}",
+        sequence=1,
+        altitude=random.randint(5000, 25000),
+        speed=random.uniform(100, 400)
     )
-     
-    
-def parseArguments():
+
+
+def parseArguments() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="UAV Telemetry Fault Simulator"
     )
@@ -167,7 +188,8 @@ def parseArguments():
 
     return parser.parse_args()
 
-def probability(value):
+
+def probability(value: str) -> float:
     value = float(value)
 
     if not 0.0 <= value <= 1.0:
@@ -177,7 +199,8 @@ def probability(value):
 
     return value
 
-def positiveInteger(value):
+
+def positiveInteger(value: str) -> int:
     value = int(value)
 
     if not 1 <= value <= 999:

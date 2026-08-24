@@ -1,103 +1,97 @@
-# receiver simulator, listens for and receives packets from
-# simulator
 import socket
-from .telemetryData import telemetryData
+
 from pydantic import ValidationError
 
+from .telemetryData import telemetryData
 
 
-# fixed global constants
 UDP_IP = "127.0.0.1"
 UDP_PORT = 5005
+BUFFER_SIZE = 1024
 START_SEQUENCE = 1
-def main():
 
-    # dictionary to check sequence numbers for validation
-    # highest sequence number associated with current telemetry
-    # compared against incoming packets
+
+def main() -> None:
+    # Track sequence state independently for each UAV
     highest: dict[str, int] = {}
     missingSequence: dict[str, set[int]] = {}
-    
-    
-    # network vars
-    
-    sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM) # Internet, #UDP
 
+    sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     sock.bind((UDP_IP, UDP_PORT))
+
     print("Server started and waiting for data...")
 
-    # receive raw bytes, convert to json and then to custom class
-    # latter is done inside of handlePacket function
     while True:
-        # adr received from recv tuple but not used
-        data, _ = sock.recvfrom(1024) # buffer size max for testing
+        data, _ = sock.recvfrom(BUFFER_SIZE)
+
         try:
             handlePacket(data, highest, missingSequence)
-
-
         except ValidationError as e:
             print("Rejected invalid telemetry packet!")
             print(e)
-        # except Exception as e:
-        #    print("Error processing packet")
 
 
-# prints stats about telemetry
-def printUavStats(packet):
+def printUavStats(packet: telemetryData) -> None:
     print(
-    f"{packet.deviceName} | "
-    f"Seq: {packet.sequence} | "
-    f"Altitude: {packet.altitude} | "
-    f"Speed: {packet.speed:.2f}"
-)
+        f"{packet.deviceName} | "
+        f"Seq: {packet.sequence} | "
+        f"Altitude: {packet.altitude} | "
+        f"Speed: {packet.speed:.2f}"
+    )
 
-def handlePacket(data, highest, missingSequence):
-    rawJson = data.decode("utf-8")
-    
-    packet = telemetryData.model_validate_json(rawJson)
 
-    # will cause unexpected errors with higher amounts of uavs
-    # owing to load imposed by console output
+def handlePacket(
+    data: bytes,
+    highest: dict[str, int],
+    missingSequence: dict[str, set[int]]
+) -> None:
+    packet = telemetryData.model_validate_json(data)
+
     printUavStats(packet)
 
-    # very first instance of this UAV
-    # is added to dictionary
-    # also checks for if first sequence # was dropped
+    # Initialize state for a newly observed UAV
     if packet.deviceName not in highest:
         missingSequence[packet.deviceName] = set()
 
-        # gap outside of expected init sequence #
         if packet.sequence > START_SEQUENCE:
             missingSequence[packet.deviceName].update(
                 range(START_SEQUENCE, packet.sequence)
             )
+
             print(
                 f"Initial sequence gap! "
                 f"Expected: {START_SEQUENCE}, "
-                f"Received {packet.sequence}"
+                f"Received: {packet.sequence}"
             )
+
         highest[packet.deviceName] = packet.sequence
 
-
+    # A jump forward means one or more packets were missed
     elif packet.sequence > highest[packet.deviceName] + 1:
-        print(f"unexpected sequence number!: {packet.sequence}")
-        for seq in range(highest[packet.deviceName] + 1, packet.sequence):
-            missingSequence[packet.deviceName].add(seq)
+        print(f"Unexpected sequence number: {packet.sequence}")
+
+        missingSequence[packet.deviceName].update(
+            range(
+                highest[packet.deviceName] + 1,
+                packet.sequence
+            )
+        )
+
         highest[packet.deviceName] = packet.sequence
-    
+
+    # A previously missing packet arrived late
     elif packet.sequence in missingSequence[packet.deviceName]:
-        print(f" Late packet received!: {packet.sequence}")
+        print(f"Late packet received: {packet.sequence}")
         missingSequence[packet.deviceName].remove(packet.sequence)
-    
+
+    # Normal in-order packet.
     elif packet.sequence == highest[packet.deviceName] + 1:
         highest[packet.deviceName] = packet.sequence
+
+    # Any remaining sequence has already been received
     else:
-        print(f"duplicate packet received!: {packet.sequence}")
-
-
+        print(f"Duplicate packet received: {packet.sequence}")
 
 
 if __name__ == "__main__":
     main()
-
-
