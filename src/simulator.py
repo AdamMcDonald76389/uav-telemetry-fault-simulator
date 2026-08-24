@@ -50,8 +50,8 @@ def encodeAndSend(packet: telemetryData, sock: socket.socket, targetAddress: tup
 #update data involving packet to simulate telemtry
 def updatePacket(packet : telemetryData):
     packet.sequence += 1
-    packet.altitude += random.randint(-20, 20)
-    packet.speed += random.uniform(-5, 5)
+    packet.altitude = max(0, min(30000, packet.altitude + random.randint(-20, 20)))
+    packet.speed = max(0.0, min(500.0, packet.speed + random.uniform(-5, 5)))
 
 # function to process packets 
 # process packets and uses conditionals for
@@ -148,7 +148,7 @@ def parseArguments():
         "--hold-chance",
         type=probability,
         default=0.0,
-        help="Chance of holding a packet"
+        help="Chance of delaying a packet for out-of-order delivery"
     )
 
     parser.add_argument(
@@ -179,10 +179,12 @@ def probability(value):
 
 def positiveInteger(value):
     value = int(value)
-    if value < 1:
+
+    if not 1 <= value <= 999:
         raise argparse.ArgumentTypeError(
-            "must have at least 1 UAV"
+            "number of UAVs must be between 1 and 999"
         )
+
     return value
 
 

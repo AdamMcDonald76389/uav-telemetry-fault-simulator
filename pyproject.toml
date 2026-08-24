@@ -1,2 +1,16 @@
+[project]
+name = "telemetry-sim"
+version = "0.1.0"
+description = "UAV telemetry and network fault simulator"
+requires-python = ">=3.10"
+dependencies = [
+    "pydantic>=2.0"
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0"
+]
+
 [tool.pytest.ini_options]
 pythonpath = ["."]
