@@ -36,6 +36,10 @@ def testCorrupt(monkeypatch, mockSock):
 
 def testLoss(monkeypatch, mockSock, mock_args):
     mock_args.packet_loss = 0.1
+    mock_args.repeat_chance = 0.0
+    mock_args.hold_chance = 0.0
+    mock_args.corruption_rate = 0.0  
+
     monkeypatch.setattr(simulator.random, "random", lambda: 0.0)
     packet = simulator.telemetryData(deviceName="UAV-002", sequence=1, altitude=5000, speed=330)
     held = {
@@ -94,11 +98,45 @@ def testHold(monkeypatch, mockSock, mock_args):
 
 
 
-# tests second part of the holding feature of packets
-# sends delayed packet from dictionary and then normal packet
-# also removes delayed packet from dictionary after
+# sends current packet, then releases previously held packet
+# to simulate out-of-order delivery
 def testDelaySend(monkeypatch, mockSock, mock_args):
-    pass
+    mock_args.packet_loss = 0.0
+    mock_args.repeat_chance = 0.0
+    mock_args.hold_chance = 0.0
+    mock_args.corruption_rate = 0.0  
+
+    packet = telemetryData(
+                deviceName="UAV-002",
+                sequence=1,
+                altitude=5000,
+                speed = 330
+            )
+    held = {
+            packet.deviceName: {}
+        }
+    
+    monkeypatch.setattr(simulator.random, "random", lambda: 0.0)
+    held[packet.deviceName][packet.sequence] = packet.model_copy(deep=True)
+    packet.sequence = 2
+    simulator.processPacket(packet, held, mockSock, mock_args)
+    firstData, firstAddress = mockSock.sendto.call_args_list[0].args
+    secondData, secondAddress = mockSock.sendto.call_args_list[1].args
+
+    firstPacket = telemetryData.model_validate_json(firstData)
+    secondPacket = telemetryData.model_validate_json(secondData)
+
+    assert firstPacket.sequence == 2
+    assert secondPacket.sequence == 1
+    assert mockSock.sendto.call_count == 2
+    assert held[packet.deviceName] == {}
+
+
+
+
+
+
+    
 
 def testRepeat(monkeypatch, mockSock, mock_args):
    
@@ -124,3 +162,13 @@ def testRepeat(monkeypatch, mockSock, mock_args):
     assert mockSock.sendto.call_count == 2
     assert firstData == secondData
     assert secondAddress == firstAddress
+
+
+    def testProcessPacket(monkeypatch, mock_args, mockSock):
+        pass
+
+
+
+
+    def testProcessCorrupt(monkeypatch, mock_args, mockSock):
+        pass
