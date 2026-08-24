@@ -11,7 +11,7 @@ def mockSock():
 def mock_args():
     return Mock()
 
-
+# test byte corruption logic
 def testCorrupt(monkeypatch, mockSock):
     packet = telemetryData(
         deviceName="UAV-002",
@@ -32,8 +32,11 @@ def testCorrupt(monkeypatch, mockSock):
     assert sentAddress == targetAddress
     assert sentData != data
     assert len(sentData) == len(data)
+    # bitwise to check that exact manipulation was made
     assert sentData[0] == data[0] ^ 0x01
 
+
+# tests packet loss conditional flow
 def testLoss(monkeypatch, mockSock, mock_args):
     mock_args.packet_loss = 0.1
     mock_args.repeat_chance = 0.0
@@ -50,7 +53,7 @@ def testLoss(monkeypatch, mockSock, mock_args):
     mockSock.sendto.assert_not_called()
 
 
-
+# basic send test
 def testSend():
     packet = telemetryData(
         deviceName="UAV-002",
@@ -137,7 +140,7 @@ def testDelaySend(monkeypatch, mockSock, mock_args):
 
 
     
-
+# tests duplicate send logic from process packet
 def testRepeat(monkeypatch, mockSock, mock_args):
    
     packet = telemetryData(
@@ -163,12 +166,52 @@ def testRepeat(monkeypatch, mockSock, mock_args):
     assert firstData == secondData
     assert secondAddress == firstAddress
 
+# test base case for send logic
+def testProcessPacket(mock_args, mockSock):
+    mock_args.packet_loss=0.0
+    mock_args.repeat_chance=0.0
+    mock_args.hold_chance=0.0
+    mock_args.corruption_rate=0.0
+    packet = telemetryData(
+        deviceName="UAV-002",
+        sequence=1,
+        altitude=5000,
+        speed = 330
+    )
+    held = {
+        packet.deviceName: {}
+    }
 
-    def testProcessPacket(monkeypatch, mock_args, mockSock):
-        pass
+    simulator.processPacket(packet, held, mockSock, mock_args)
+    assert mockSock.sendto.call_count == 1
+    data, firstAddress = mockSock.sendto.call_args_list[0].args
+    dataPacket = telemetryData.model_validate_json(data)
+    assert dataPacket == packet
+       
 
 
 
-
-    def testProcessCorrupt(monkeypatch, mock_args, mockSock):
-        pass
+# test correct calling and usage of corrupt function inside processPacket
+def testProcessCorrupt(monkeypatch, mock_args, mockSock):
+    mock_args.packet_loss=0.0
+    mock_args.repeat_chance=0.0
+    mock_args.hold_chance=0.0
+    mock_args.corruption_rate=0.1
+    monkeypatch.setattr(simulator.random, "random", lambda: 0.0)
+    packet = telemetryData(
+            deviceName="UAV-002",
+            sequence=1,
+            altitude=5000,
+            speed = 330
+        )
+    held = {
+        packet.deviceName: {}
+        }
+    
+    simulator.processPacket(packet, held, mockSock, mock_args)
+    assert mockSock.sendto.call_count == 1
+    data, address = mockSock.sendto.call_args_list[0].args
+    packetJson = packet.model_dump_json()
+    packetBytes = packetJson.encode("utf-8")
+    assert packetBytes != data
+    assert len(packetBytes) == len(data)
