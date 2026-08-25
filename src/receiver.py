@@ -39,15 +39,6 @@ def main() -> None:
             )
 
 
-def printUavStats(packet: telemetryData) -> None:
-    print(
-        f"{packet.deviceName} | "
-        f"Seq: {packet.sequence} | "
-        f"Altitude: {packet.altitude} | "
-        f"Speed: {packet.speed:.2f}"
-    )
-
-
 def handlePacket(
     data: bytes,
     highest: dict[str, int],
