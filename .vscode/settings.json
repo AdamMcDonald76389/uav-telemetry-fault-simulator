@@ -1,7 +1,0 @@
-{
-    "python.analysis.extraPaths": [
-        "${workspaceFolder}"
-    ],
-    "python.analysis.importFormat": "absolute",
-    "python-envs.defaultEnvManager": "ms-python.python:system"
-}
