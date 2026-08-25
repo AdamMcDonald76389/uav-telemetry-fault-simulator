@@ -2,7 +2,7 @@ import argparse
 import random
 import socket
 import time
-
+import logging
 
 from .telemetryData import telemetryData
 

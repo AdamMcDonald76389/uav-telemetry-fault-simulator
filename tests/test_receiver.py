@@ -50,7 +50,7 @@ def testBaseCase():
 
 
 # Test duplicate packet handling
-def testHandleDuplicate(capsys):
+def testHandleDuplicate(caplog):
     highest: dict[str, int] = {"UAV-001": 1}
     missingSequence: dict[str, set[int]] = {"UAV-001": set()}
 
@@ -60,15 +60,13 @@ def testHandleDuplicate(capsys):
         missingSequence,
     )
 
-    captured = capsys.readouterr()
-
-    assert "Duplicate packet received" in captured.out
+    assert "Duplicate packet received" in caplog.text
     assert highest["UAV-001"] == 1
     assert missingSequence["UAV-001"] == set()
 
 
 # Test handling of packets received out of order
-def testHandleLate(capsys):
+def testHandleLate(caplog):
     highest: dict[str, int] = {"UAV-001": 4}
     missingSequence: dict[str, set[int]] = {
         "UAV-001": {1, 2, 3}
@@ -80,15 +78,15 @@ def testHandleLate(capsys):
         missingSequence,
     )
 
-    captured = capsys.readouterr()
+    
 
-    assert "Late packet received" in captured.out
+    assert "Late packet received" in caplog.text
     assert missingSequence["UAV-001"] == {1, 3}
     assert highest["UAV-001"] == 4
 
 
 # Test when the first received packet contains an initial sequence gap
-def testInitialGapInit(capsys):
+def testInitialGapInit(caplog):
     highest: dict[str, int] = {}
     missingSequence: dict[str, set[int]] = {}
 
@@ -98,15 +96,15 @@ def testInitialGapInit(capsys):
         missingSequence,
     )
 
-    captured = capsys.readouterr()
+    
 
-    assert "Initial sequence gap!" in captured.out
+    assert "Initial sequence gap" in caplog.text
     assert highest["UAV-001"] == 3
     assert missingSequence["UAV-001"] == {1, 2}
 
 
 # Test a forward sequence jump that creates missing packets
-def testHandleUnexpected(capsys):
+def testHandleUnexpected(caplog):
     highest: dict[str, int] = {"UAV-001": 1}
     missingSequence: dict[str, set[int]] = {"UAV-001": set()}
 
@@ -116,9 +114,9 @@ def testHandleUnexpected(capsys):
         missingSequence,
     )
 
-    captured = capsys.readouterr()
+    
 
-    assert "Unexpected sequence number" in captured.out
+    assert "Sequence gap" in caplog.text
     assert missingSequence["UAV-001"] == {2, 3, 4}
     assert highest["UAV-001"] == 5
 
