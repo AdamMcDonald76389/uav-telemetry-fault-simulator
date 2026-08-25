@@ -16,16 +16,17 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+
 def main() -> None:
     # Track sequence state independently for each UAV
     highest: dict[str, int] = {}
     missingSequence: dict[str, set[int]] = {}
-
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    sock.bind((UDP_IP, UDP_PORT))
 
-    logger.info("Server started and waiting for data...")
     try:
+        sock.bind((UDP_IP, UDP_PORT))
+        logger.info("Server started and waiting for data...")
+
         while True:
             data, addr = sock.recvfrom(BUFFER_SIZE)
 
@@ -36,13 +37,14 @@ def main() -> None:
                     "Rejected invalid telemetry packet | Source=%s | Error=%s",
                     addr,
                     e.errors()[0]["msg"],
-                )
+                    )
     except KeyboardInterrupt:
         logger.info("Shutdown requested")
 
     finally:
         sock.close()
         logger.info("Server stopped")
+
 
 def handlePacket(
     data: bytes,
