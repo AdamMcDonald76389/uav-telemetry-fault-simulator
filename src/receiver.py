@@ -25,19 +25,24 @@ def main() -> None:
     sock.bind((UDP_IP, UDP_PORT))
 
     logger.info("Server started and waiting for data...")
+    try:
+        while True:
+            data, addr = sock.recvfrom(BUFFER_SIZE)
 
-    while True:
-        data, addr = sock.recvfrom(BUFFER_SIZE)
+            try:
+                handlePacket(data, highest, missingSequence)
+            except ValidationError as e:
+                logger.warning(
+                    "Rejected invalid telemetry packet | Source=%s | Error=%s",
+                    addr,
+                    e.errors()[0]["msg"],
+                )
+    except KeyboardInterrupt:
+        logger.info("Shutdown requested")
 
-        try:
-            handlePacket(data, highest, missingSequence)
-        except ValidationError as e:
-            logger.warning(
-                "Rejected invalid telemetry packet | Source=%s | Error=%s",
-                addr,
-                e.errors()[0]["msg"],
-            )
-
+    finally:
+        sock.close()
+        logger.info("Server stopped")
 
 def handlePacket(
     data: bytes,
@@ -57,17 +62,25 @@ def handlePacket(
                 range(START_SEQUENCE, packet.sequence)
             )
 
-            print(
-                f"Initial sequence gap! "
-                f"Expected: {START_SEQUENCE}, "
-                f"Received: {packet.sequence}"
-            )
+            logger.warning(
+                "Initial sequence gap | UAV=%s | Expected=%d | Received=%d",
+                packet.deviceName,
+                START_SEQUENCE,
+                packet.sequence,
+                )
 
         highest[packet.deviceName] = packet.sequence
 
     # A jump forward means one or more packets were missed
     elif packet.sequence > highest[packet.deviceName] + 1:
-        print(f"Unexpected sequence number: {packet.sequence}")
+        expectedSequence = highest[packet.deviceName] + 1
+
+        logger.warning(
+            "Sequence gap | UAV=%s | Expected=%d | Received=%d",
+            packet.deviceName,
+            expectedSequence,
+            packet.sequence,
+        )
 
         missingSequence[packet.deviceName].update(
             range(
