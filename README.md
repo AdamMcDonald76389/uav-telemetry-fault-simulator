@@ -113,4 +113,4 @@ Run the test suite from the project root:
 pytest
 ```
 
-The test suite covers telemetry validation, packet handling, simulated network faults, and command-line argument validation.
+The test suite covers telemetry validation, packet handling, simulated network faults, integration tests, and command-line argument validation.
