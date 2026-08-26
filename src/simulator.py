@@ -12,15 +12,23 @@ UDP_PORT = 5005
 TARGET_ADDRESS = (UDP_IP, UDP_PORT)
 UPDATE_INTERVAL = 1
 
-
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s | %(levelname)s | %(message)s"
+)
+logger = logging.getLogger(__name__)
 def main() -> None:
     args = parseArguments()
-
-    print(f"Packet loss: {args.packet_loss}")
-    print(f"Repeat chance: {args.repeat_chance}")
-    print(f"Hold chance: {args.hold_chance}")
-    print(f"Corruption rate: {args.corruption_rate}")
-    print(f"UAVs: {args.uavs}")
+    logger.info(
+        "Simulator started | Packet loss=%.2f | Repeat chance=%.2f | "
+        "Hold chance=%.2f | Corruption rate=%.2f | UAVs=%d",
+        args.packet_loss,
+        args.repeat_chance,
+        args.hold_chance,
+        args.corruption_rate,
+        args.uavs
+    )
+   
 
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 
@@ -28,13 +36,20 @@ def main() -> None:
     held: dict[str, dict[int, telemetryData]] = {
         packet.deviceName: {} for packet in packets
     }
+    try:
+        while True:
+            for packet in packets:
+                processPacket(packet, held, sock, args)
+                updatePacket(packet)
 
-    while True:
-        for packet in packets:
-            processPacket(packet, held, sock, args)
-            updatePacket(packet)
+            time.sleep(UPDATE_INTERVAL)
 
-        time.sleep(UPDATE_INTERVAL)
+    except KeyboardInterrupt:
+        logger.info("Shutdown requested")
+
+    finally:
+        sock.close()
+        logger.info("Simulator stopped")
 
 
 def encodeAndSend(
@@ -84,10 +99,18 @@ def processPacket(
     sentCurrentPacket = False
 
     if dropped < args.packet_loss:
-        print(f"Packet {packet.sequence} dropped!")
+        logger.warning(
+            "Packet dropped | UAV=%s | Seq=%d",
+            packet.deviceName,
+            packet.sequence
+        )
 
     elif repeat < args.repeat_chance:
-        print(f"Packet {packet.sequence} duplicated!")
+        logger.warning(
+            "Packet duplicated | UAV=%s | Seq=%d",
+            packet.deviceName,
+            packet.sequence
+        )
 
         encodeAndSend(packet, sock, TARGET_ADDRESS)
         encodeAndSend(packet, sock, TARGET_ADDRESS)
@@ -95,7 +118,11 @@ def processPacket(
         sentCurrentPacket = True
 
     elif hold < args.hold_chance:
-        print(f"Holding packet {packet.sequence}")
+        logger.warning(
+            "Packet held | UAV=%s | Seq=%d",
+            packet.deviceName,
+            packet.sequence
+        )
 
         # Store a copy so later telemetry updates do not modify the held packet
         held[packet.deviceName][packet.sequence] = packet.model_copy(
@@ -103,7 +130,11 @@ def processPacket(
         )
 
     elif corrupt < args.corruption_rate:
-        print(f"Sending corrupted packet {packet.sequence}")
+        logger.warning(
+            "Packet corrupted | UAV=%s | Seq=%d",
+            packet.deviceName,
+            packet.sequence
+        )
 
         sendCorrupted(packet, sock, TARGET_ADDRESS)
         sentCurrentPacket = True
