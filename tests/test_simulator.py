@@ -237,3 +237,6 @@ def testProcessCorrupt(monkeypatch, mock_args, mockSock):
 
     assert packetBytes != data
     assert len(packetBytes) == len(data)
+
+def testIntentionalFailure():
+    assert False
