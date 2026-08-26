@@ -7,7 +7,7 @@ import logging
 from .telemetryData import telemetryData
 
 
-UDP_IP = "127.0.0.1"
+UDP_IP = "receiver"
 UDP_PORT = 5005
 TARGET_ADDRESS = (UDP_IP, UDP_PORT)
 UPDATE_INTERVAL = 1

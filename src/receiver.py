@@ -6,7 +6,7 @@ from pydantic import ValidationError
 from .telemetryData import telemetryData
 
 
-UDP_IP = "127.0.0.1"
+UDP_IP = "0.0.0.0"
 UDP_PORT = 5005
 BUFFER_SIZE = 1024
 START_SEQUENCE = 1
