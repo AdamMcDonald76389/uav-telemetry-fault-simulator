@@ -1,0 +1,17 @@
+.git
+.gitignore
+.vscode
+.idea
+
+__pycache__
+*.pyc
+.pytest_cache
+.coverage
+htmlcov
+
+.venv
+venv
+
+tests/
+
+README.md

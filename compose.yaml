@@ -1,0 +1,31 @@
+services:
+  receiver:
+    build: .
+    image: uav-telemetry
+    command: python -m src.receiver
+    environment:
+      UDP_IP: 0.0.0.0
+      UDP_PORT: 5005
+
+  simulator:
+    build: .
+    image: uav-telemetry
+    command:
+      - python
+      - -m
+      - src.simulator
+      - --packet-loss
+      - "0.01"
+      - --repeat-chance
+      - "0.01"
+      - --hold-chance
+      - "0.01"
+      - --corruption-rate
+      - "0.01"
+      - --uavs
+      - "20"
+    environment:
+      UDP_IP: receiver
+      UDP_PORT: 5005
+    depends_on:
+      - receiver

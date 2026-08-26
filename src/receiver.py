@@ -1,13 +1,14 @@
 import socket
 import logging 
+import os
 
 from pydantic import ValidationError
 
 from .telemetryData import telemetryData
 
 
-UDP_IP = "0.0.0.0"
-UDP_PORT = 5005
+UDP_IP = os.getenv("UDP_IP", "127.0.0.1")
+UDP_PORT = int(os.getenv("UDP_PORT", "5005"))
 BUFFER_SIZE = 1024
 START_SEQUENCE = 1
 logging.basicConfig(
